@@ -13,7 +13,7 @@
 .type nameStr,%gnu_unique_object
     
 /*** STUDENTS: Change the next line to your name!  **/
-nameStr: .asciz "Inigo Montoya"  
+nameStr: .asciz "Robert Nelson"  
  
 .align
 
@@ -80,7 +80,74 @@ nanValue: .word 0x7FFFFFFF
  .type initVariables,%function
 initVariables:
     /* YOUR initVariables CODE BELOW THIS LINE! Don't forget to push and pop! */
-
+    
+    push {r4-r11, LR}
+    
+    ldr r2, =f0
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =sb0
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =storedExp0
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =realExp0
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =mant0
+    mov r3, 0
+    str r3, [r2]
+    
+    
+    ldr r2, =f1
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =sb1
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =storedExp1
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =realExp1
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =mant1
+    mov r3, 0
+    str r3, [r2]
+    
+    
+    ldr r2, =fMax
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =sbMax
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =storedExpMax
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =realExpMax
+    mov r3, 0
+    str r3, [r2]
+    
+    ldr r2, =mantMax
+    mov r3, 0
+    str r3, [r2]
+    
+    pop {r4-r11, LR}
+    bx LR
+    
     /* YOUR initVariables CODE ABOVE THIS LINE! Don't forget to push and pop! */
 
     
@@ -97,7 +164,17 @@ initVariables:
 .type getSignBit,%function
 getSignBit:
     /* YOUR getSignBit CODE BELOW THIS LINE! Don't forget to push and pop! */
-
+    
+    push {r4-r11, LR}
+    
+    ldr r3, [r0]
+    lsr r3, 31
+    
+    str r3, [r1]
+    
+    pop {r4-r11, LR}
+    bx LR
+    
     /* YOUR getSignBit CODE ABOVE THIS LINE! Don't forget to push and pop! */
     
 
@@ -118,6 +195,17 @@ getSignBit:
 .type getExponent,%function
 getExponent:
     /* YOUR getExponent CODE BELOW THIS LINE! Don't forget to push and pop! */
+    push {r4-r11, LR}
+    
+    ldr r3, [r0]
+    lsl r3, 1
+    lsr r3, 23
+    
+    mov r0, r3
+    sub r1, r3, 127
+    
+    pop {r4-r11, LR}
+    bx LR
     
     /* YOUR getExponent CODE ABOVE THIS LINE! Don't forget to push and pop! */
    
@@ -136,6 +224,25 @@ getExponent:
 .type getMantissa,%function
 getMantissa:
     /* YOUR getMantissa CODE BELOW THIS LINE! Don't forget to push and pop! */
+    
+    push {r4-r11, LR}
+    
+    ldr r3, [r0]
+    ldr r4, [r0]
+    lsl r3, 9
+    lsr r3, 9
+    
+    mov r0, r3
+    
+    lsl r4, 9
+    neg r4, r4
+    asr r4, 1
+    lsr r4, 8
+    
+    mov r1, r4
+    
+    pop {r4-r11, LR}
+    bx LR
     
     /* YOUR getMantissa CODE ABOVE THIS LINE! Don't forget to push and pop! */
    
@@ -156,7 +263,14 @@ getMantissa:
 .type asmIsZero,%function
 asmIsZero:
     /* YOUR asmIsZero CODE BELOW THIS LINE! Don't forget to push and pop! */
-BX LR    
+    
+    push {r4-r11, LR}
+    
+    mov r1, r0
+    
+    pop {r4-r11, LR}
+    bx LR
+    
     /* YOUR asmIsZero CODE ABOVE THIS LINE! Don't forget to push and pop! */
    
 
@@ -176,7 +290,9 @@ BX LR
 .type asmIsInf,%function
 asmIsInf:
     /* YOUR asmIsInf CODE BELOW THIS LINE! Don't forget to push and pop! */
-BX LR    
+    
+    
+    
     /* YOUR asmIsInf CODE ABOVE THIS LINE! Don't forget to push and pop! */
    
 
