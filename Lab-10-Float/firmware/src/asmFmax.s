@@ -167,10 +167,11 @@ getSignBit:
     
     push {r4-r11, LR}
     
+    /* Load 32b float and LSR to isolate the sign bit, then store */
     ldr r3, [r0]
     lsr r3, 31
     
-    str r3, [r1]
+    str r3, [r1]    // Store SB in provided address
     
     pop {r4-r11, LR}
     bx LR
@@ -195,12 +196,19 @@ getSignBit:
 .type getExponent,%function
 getExponent:
     /* YOUR getExponent CODE BELOW THIS LINE! Don't forget to push and pop! */
+    
     push {r4-r11, LR}
     
+    /***
+     * Load given 32b float, shift left to remove sign bit
+     * LSR right to isolate exponent
+     * Store the exponent
+    ***/
     ldr r3, [r0]
     lsl r3, 1
     lsr r3, 23
     
+    /* Calculate the real exponent */
     mov r0, r3
     sub r1, r3, 127
     
@@ -227,6 +235,11 @@ getMantissa:
     
     push {r4-r11, LR}
     
+    
+    /***
+     * Load 32b float and LSL to remove sign + exponent
+     * LSR to isolate mantissa without implied bit
+    ***/
     ldr r3, [r0]
     ldr r4, [r0]
     lsl r3, 9
@@ -234,11 +247,12 @@ getMantissa:
     
     mov r0, r3
     
+    /***
+     * Load 32b float and LSL to remove sign + exponent
+     * ORR with 0x80000000 to add implied 1 bit
+    ***/    
     lsl r4, 9
-    neg r4, r4
-    asr r4, 1
-    lsr r4, 8
-    
+    orr r4, r4, 0x80000000    
     mov r1, r4
     
     pop {r4-r11, LR}
@@ -266,7 +280,45 @@ asmIsZero:
     
     push {r4-r11, LR}
     
-    mov r1, r0
+    /***
+     * Load 32b float and sign bit mask
+     * Compare float with bit mask
+     * If 0, branch to check for +0
+    ***/
+    ldr r1, [r0]
+    
+    mov r2, 0x80000000
+    cmp r1, 0
+    beq is_pos
+    
+    /***
+     * Check for sign bit being set
+     * If set but not 0, value is not valid
+    ***/
+    ands r3, r1, r2
+    bne not_zero
+    
+    /***
+     * Test if value has sign bit set
+     * If not set, not zero
+    ***/
+    tst r1, r2
+    beq not_zero
+    
+    mov r0, -1	// All other checks failed, must be -0
+    
+    pop {r4-r11, LR}
+    bx lr
+    
+    /* Return 1 for +0 */
+    is_pos:
+    mov r0, 1
+    pop {r4-r11, LR}
+    bx lr
+    
+    /* Return 0 for not zero */
+    not_zero:
+    mov r0, 0
     
     pop {r4-r11, LR}
     bx LR
@@ -291,7 +343,46 @@ asmIsZero:
 asmIsInf:
     /* YOUR asmIsInf CODE BELOW THIS LINE! Don't forget to push and pop! */
     
+    push {r4-r11, LR}
     
+    /***
+     * Load 32b float
+     * Load bit pattern for +inf
+     * Load sign bit mask
+    ***/
+    ldr r1, [r0]
+    mov r2, 0x7f800000
+    mov r3, 0x80000000
+    
+    /* Compare float with +inf */
+    cmp r1, r2
+    beq is_pos_inf
+    
+    /* Combine +inf with sb to get -inf */
+    orr r2, r2, r3
+    cmp r1, r2
+    beq is_neg_inf
+    
+    /* Return 0 if value is not inf */
+    not_inf:
+    mov r0, 0
+    
+    pop {r4-r11, LR}
+    bx LR
+    
+    /* Return 1 if value is +inf */
+    is_pos_inf:
+    mov r0, 1
+    
+    pop {r4-r11, LR}
+    bx LR
+    
+    /* Return -1 for -inf */
+    is_neg_inf:
+    mov r0, -1
+    
+    pop {r4-r11, LR}
+    bx LR
     
     /* YOUR asmIsInf CODE ABOVE THIS LINE! Don't forget to push and pop! */
    
@@ -332,7 +423,68 @@ asmFmax:
 
     /* YOUR asmFmax CODE BELOW THIS LINE! VVVVVVVVVVVVVVVVVVVVV  */
     
-BX LR    
+    push {r4-r11, LR}
+    
+    bl initVariables	// Initialize all values to zero
+    
+    /* Load fMax and inputs */
+    ldr r2, =fMax
+    ldr r3, [r0]
+    ldr r4, [r1]
+    
+    /***
+     * Compare f0 and f1
+     * Branch to handle whichever is maximum
+     * If f0 == f1, either is maximum
+    ***/
+    cmp r3, r4
+    bgt f0_is_max
+    blt f1_is_max
+    b equal_values
+    
+    /* Store f0 as fMax, update r0 */
+    f0_is_max:
+    str r3, [r2]
+    mov r0, r3
+    b unpack_update
+    
+    /* Store f1 as fMax, update r0 */
+    f1_is_max:
+    str r4, [r2]
+    mov r0, r4
+    b unpack_update
+    
+    /* Values are equal, store either one */
+    equal_values:
+    str r3, [r2]
+    mov r0, r3
+    b unpack_update
+    
+    /***
+     * Load sbMax and update sb of fMax
+     * Reload fMax for getExponent
+     * Load address of real exponent
+     * Call getExponent to calc and store exp
+     * Store biased exponent
+    ***/
+    unpack_update:
+    ldr r1, =sbMax
+    bl getSignBit
+    
+    ldr r0, =fMax
+    ldr r1, =realExpMax
+    bl getExponent
+    ldr r2, =storedExpMax
+    str r0, [r2]
+    
+    /* Load fMax and get mantissa to store */
+    ldr r0, =fMax
+    ldr r1, =mantMax
+    bl getMantissa
+    
+    pop {r4-r11, LR}
+    bx LR
+    
     /* YOUR asmFmax CODE ABOVE THIS LINE! ^^^^^^^^^^^^^^^^^^^^^  */
 
    
